@@ -1,0 +1,42 @@
+BROKER SCHEMA com.mmfsl.yms.tz
+
+
+CREATE COMPUTE MODULE YMS_Response_letter_Logging
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyMessageHeaders();
+		 CALL CopyEntireMessage();
+		 
+		  DECLARE EV REFERENCE TO Environment.Variables;
+		SET EV.CurrentCount = 1;
+		SET EV.Header = InputRoot.HTTPInputHeader;
+		SET EV.Property = InputRoot.Properties;
+		SET EV.Record = InputRoot.JSON.Data;
+		SET Environment.Flag = 'N';
+		 
+		DECLARE EnvRef REFERENCE TO Environment.Variable.MsgDetails[>];
+		SET EnvRef.servicename			= ApplicationLabel;
+		SET EnvRef.interfaceId 			= 'INT011';
+		SET EnvRef.businessKey1 		= EV.Record.YmsId;
+		SET EnvRef.businessKey5			=	UUIDASCHAR;
+		SET EnvRef.requestId			= EV.Header.Request_token;
+		--SET EnvRef.issensible	 		= 'N';
+		SET EnvRef.hostname	 			= InputRoot.HTTPInputHeader."X-Client-Ip";
+		 
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
